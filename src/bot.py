@@ -1,8 +1,11 @@
 from botcity.web import WebBot, Browser, By
 from botcity.web.browsers.chrome import default_options
+from botcity.core import DesktopBot
 import os
+import pandas as pd
 
 user_dir = None
+
 
 entrada = "Você poderia gerar no formato json com o nome 'produtos' os dados de 3 produtos eletronicos \
   contendo as informações: nome, categoria, codigo, identificador, descrição, preço e quantidade?"
@@ -32,15 +35,35 @@ def coleta_dados_produtos():
   )
 
   botao_enviar.click()
+  bot.wait(2000)
 
+  while botao_enviar.get_attribute("disabled") == "true":
+    print("Aguardando os dados serem gerados...")
+    bot.wait(2000)
 
-  input()
+  dados = bot.find_element("language-json", By.CLASS_NAME).get_attribute("textContent")
+  print(dados)
 
+  dados = pd.read_json(dados)
+  df = pd.json_normalize(dados["produtos"])
+  print(df)
+
+  df.to_excel("produtos.xlsx", index=False)
+  print("Arquivo Excel gerado com sucesso!")
+
+  bot.wait(2000)
   bot.stop_browser()
 
+  return df
+
+def cadastra_produto(data_frame: pd.DataFrame):
+  bot = DesktopBot()
+
+  bot.execute(r"Fakturama.exe")
+
 def main():
-  coleta_dados_produtos()
-  print("Dados coletados com sucesso!")
+  dados_produtos = coleta_dados_produtos()
+  cadastra_produto(dados_produtos)
 
 if __name__ == "__main__":
   main()
